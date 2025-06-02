@@ -69,6 +69,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.interfaceTexts": "Interface Texts",
     "nav.admins": "Admins",
     "nav.settings": "Settings",
+    "nav.logout": "Logout",
 
     // Dashboard
     "dashboard.title": "Dashboard",
@@ -441,7 +442,19 @@ const translations: Record<Language, Record<string, string>> = {
     // Language switcher
     "language.switch": "Switch Language",
     "language.english": "English",
-    "language.russian": "Russian",
+    "auth.login": "Login",
+    "auth.register": "Register",
+    "auth.email": "Email",
+    "auth.password": "Password",
+    "auth.firstName": "First Name",
+    "auth.lastName": "Last Name",
+    "auth.loginButton": "Sign In",
+    "auth.registerButton": "Register",
+    "auth.loggingIn": "Signing in...",
+    "auth.registering": "Registering...",
+    "auth.accessDenied": "Access Denied",
+    "auth.pendingApproval": "Pending Approval",
+    "auth.notAdmin": "Not an Administrator",
   },
   ru: {
     // Navigation
@@ -456,6 +469,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.interfaceTexts": "Тексты интерфейса",
     "nav.admins": "Администраторы",
     "nav.settings": "Настройки",
+    "nav.logout": "Выход",
 
     // Dashboard
     "dashboard.title": "Панель управления",
@@ -834,5 +848,18 @@ const translations: Record<Language, Record<string, string>> = {
     "language.switch": "Переключить язык",
     "language.english": "English",
     "language.russian": "Русский",
+    "auth.login": "Вход",
+    "auth.register": "Регистрация",
+    "auth.email": "Email",
+    "auth.password": "Пароль",
+    "auth.firstName": "Имя",
+    "auth.lastName": "Фамилия",
+    "auth.loginButton": "Войти",
+    "auth.registerButton": "Зарегистрироваться",
+    "auth.loggingIn": "Вход...",
+    "auth.registering": "Регистрация...",
+    "auth.accessDenied": "Доступ запрещен",
+    "auth.pendingApproval": "Ожидание одобрения",
+    "auth.notAdmin": "Не администратор",
   },
 }

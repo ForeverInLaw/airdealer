@@ -15,12 +15,14 @@ import {
   ShieldCheck,
   Settings,
   Warehouse,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
 import { LanguageSwitcher } from "./language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { motion } from "framer-motion"
+import { createClient } from "@/lib/supabase-client"
 
 export default function SidebarNav() {
   const pathname = usePathname()
@@ -113,6 +115,30 @@ export default function SidebarNav() {
               </TooltipTrigger>
               <TooltipContent side="right" className="glass-effect">
                 {isLoaded ? t("nav.settings") : "Settings"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <button
+                    onClick={async () => {
+                      const supabase = createClient()
+                      await supabase.auth.signOut()
+                      window.location.href = "/"
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-all duration-200 hover:text-foreground hover:bg-accent/50 md:h-8 md:w-8"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="sr-only">{isLoaded ? t("nav.logout") : "Logout"}</span>
+                  </button>
+                </motion.div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="glass-effect">
+                {isLoaded ? t("nav.logout") : "Logout"}
               </TooltipContent>
             </Tooltip>
           </div>
