@@ -88,11 +88,32 @@ export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTablePro
       ),
       cell: ({ row }) => {
         const amount = Number.parseFloat(row.getValue("price"))
-        const formatted = new Intl.NumberFormat("en-US", {
+        const formatted = new Intl.NumberFormat("pl-PL", {
           style: "currency",
-          currency: "USD",
+          currency: "PLN",
         }).format(amount)
         return <div className="text-right font-medium">{formatted}</div>
+      },
+    },
+    {
+      accessorKey: "cost",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="text-right w-full justify-end"
+        >
+          {t("products.cost")}
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const amount = Number.parseFloat(row.getValue("cost"))
+        const formatted = new Intl.NumberFormat("pl-PL", {
+          style: "currency",
+          currency: "PLN",
+        }).format(amount)
+        return <div className="text-right font-medium text-muted-foreground">{formatted}</div>
       },
     },
     {

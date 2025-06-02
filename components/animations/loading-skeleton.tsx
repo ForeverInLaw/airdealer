@@ -75,3 +75,13 @@ export function PageHeaderSkeleton() {
     </div>
   )
 }
+
+export function LoadingSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <Skeleton className="h-4 w-[250px]" />
+      <Skeleton className="h-4 w-[200px]" />
+      <Skeleton className="h-8 w-full" />
+    </div>
+  )
+}

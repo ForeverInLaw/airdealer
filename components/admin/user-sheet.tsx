@@ -61,7 +61,7 @@ export function UserSheet({ isOpen, onOpenChange, user, onSave, supabaseClient, 
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "selected_location_id") {
-      setFormData({ ...formData, [name]: value ? Number(value) : null })
+      setFormData({ ...formData, [name]: value === "none" ? null : Number(value) })
     } else {
       setFormData({ ...formData, [name]: value })
     }
@@ -318,14 +318,14 @@ export function UserSheet({ isOpen, onOpenChange, user, onSave, supabaseClient, 
               </Label>
               <Select
                 name="selected_location_id"
-                value={formData.selected_location_id?.toString() || ""}
+                value={formData.selected_location_id?.toString() || "none"}
                 onValueChange={(value) => handleSelectChange("selected_location_id", value)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder={t("users.selectLocation")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t("users.noLocationSelected")}</SelectItem>
+                  <SelectItem value="none">{t("users.noLocationSelected")}</SelectItem>
                   {locations.map((location) => (
                     <SelectItem key={location.id} value={location.id.toString()}>
                       {location.name}

@@ -215,33 +215,36 @@ export function ProductSheet({
     data: LocalizationFormData,
     setter: (field: "name" | "description", value: string) => void,
   ) => (
-    <div className="col-span-4 border-t pt-4 mt-4">
-      <h4 className="text-md font-medium mb-3">
+    <div className="space-y-4 border-t pt-4 mt-4">
+      <h4 className="text-md font-medium">
         {t("localization.localization")} ({langName})
       </h4>
-      <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-        <Label htmlFor={`${langCode}Name`} className="text-right col-span-4 sm:col-span-1">
-          {t("localization.name")} ({langName})
-        </Label>
-        <Input
-          id={`${langCode}Name`}
-          name={`${langCode}Name`}
-          value={data.name}
-          onChange={(e) => setter("name", e.target.value)}
-          className="col-span-4 sm:col-span-3"
-          placeholder={`${t("localization.product_name_in")} ${langName}`}
-        />
-        <Label htmlFor={`${langCode}Description`} className="text-right col-span-4 sm:col-span-1 pt-2">
-          {t("localization.description")} ({langName})
-        </Label>
-        <Textarea
-          id={`${langCode}Description`}
-          name={`${langCode}Description`}
-          value={data.description}
-          onChange={(e) => setter("description", e.target.value)}
-          className="col-span-4 sm:col-span-3 min-h-[80px]"
-          placeholder={`${t("localization.product_description_in")} ${langName} (${t("optional")})`}
-        />
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${langCode}Name`}>
+            {t("localization.name")} ({langName})
+          </Label>
+          <Input
+            id={`${langCode}Name`}
+            name={`${langCode}Name`}
+            value={data.name}
+            onChange={(e) => setter("name", e.target.value)}
+            placeholder={`${t("localization.product_name_in")} ${langName}`}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${langCode}Description`}>
+            {t("localization.description")} ({langName})
+          </Label>
+          <Textarea
+            id={`${langCode}Description`}
+            name={`${langCode}Description`}
+            value={data.description}
+            onChange={(e) => setter("description", e.target.value)}
+            className="min-h-[80px]"
+            placeholder={`${t("localization.product_description_in")} ${langName} (${t("optional")})`}
+          />
+        </div>
       </div>
     </div>
   )
@@ -257,119 +260,102 @@ export function ProductSheet({
               : t("products.fill_in_product_details_and_localizations")}
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="grid gap-y-3 py-4">
+        <form onSubmit={handleSubmit} className="space-y-6 py-4">
           {/* Main Product Fields */}
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="name" className="text-right col-span-4 sm:col-span-1">
-              {t("products.internal_fallback_name")}
-            </Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name || ""}
-              onChange={handleChange}
-              className="col-span-4 sm:col-span-3"
-              required
-              placeholder={t("products.sku_or_primary_name")}
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="manufacturer_id" className="text-right col-span-4 sm:col-span-1">
-              {t("products.manufacturer")}
-            </Label>
-            <Select
-              name="manufacturer_id"
-              value={formData.manufacturer_id?.toString()}
-              onValueChange={(value) => handleSelectChange("manufacturer_id", value)}
-              required
-            >
-              <SelectTrigger className="col-span-4 sm:col-span-3">
-                <SelectValue placeholder={t("products.select_manufacturer")} />
-              </SelectTrigger>
-              <SelectContent>
-                {manufacturers.map((m) => (
-                  <SelectItem key={m.id} value={m.id.toString()}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="category_id" className="text-right col-span-4 sm:col-span-1">
-              {t("products.category")}
-            </Label>
-            <Select
-              name="category_id"
-              value={formData.category_id?.toString()}
-              onValueChange={(value) => handleSelectChange("category_id", value)}
-              required
-            >
-              <SelectTrigger className="col-span-4 sm:col-span-3">
-                <SelectValue placeholder={t("products.select_category")} />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="price" className="text-right col-span-4 sm:col-span-1">
-              {t("products.price")}
-            </Label>
-            <Input
-              id="price"
-              name="price"
-              type="number"
-              step="0.01"
-              value={formData.price || ""}
-              onChange={handleChange}
-              className="col-span-4 sm:col-span-3"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="cost" className="text-right col-span-4 sm:col-span-1">
-              {t("products.cost")}
-            </Label>
-            <Input
-              id="cost"
-              name="cost"
-              type="number"
-              step="0.01"
-              value={formData.cost || ""}
-              onChange={handleChange}
-              className="col-span-4 sm:col-span-3"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="image_url" className="text-right col-span-4 sm:col-span-1">
-              {t("products.image_url")}
-            </Label>
-            <Input
-              id="image_url"
-              name="image_url"
-              value={formData.image_url || ""}
-              onChange={handleChange}
-              className="col-span-4 sm:col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-x-4 gap-y-3">
-            <Label htmlFor="variation" className="text-right col-span-4 sm:col-span-1">
-              {t("products.variation")}
-            </Label>
-            <Input
-              id="variation"
-              name="variation"
-              value={formData.variation || ""}
-              onChange={handleChange}
-              className="col-span-4 sm:col-span-3"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">{t("products.internal_fallback_name")}</Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name || ""}
+                onChange={handleChange}
+                required
+                placeholder={t("products.sku_or_primary_name")}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manufacturer_id">{t("products.manufacturer")}</Label>
+                <Select
+                  name="manufacturer_id"
+                  value={formData.manufacturer_id?.toString()}
+                  onValueChange={(value) => handleSelectChange("manufacturer_id", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("products.selectManufacturer")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {manufacturers.map((m) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category_id">{t("products.category")}</Label>
+                <Select
+                  name="category_id"
+                  value={formData.category_id?.toString()}
+                  onValueChange={(value) => handleSelectChange("category_id", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("products.selectCategory")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="price">{t("products.price")}</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price || ""}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cost">{t("products.cost")}</Label>
+                <Input
+                  id="cost"
+                  name="cost"
+                  type="number"
+                  step="0.01"
+                  value={formData.cost || ""}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image_url">{t("products.imageUrl")}</Label>
+              <Input id="image_url" name="image_url" value={formData.image_url || ""} onChange={handleChange} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="variation">{t("products.variation")}</Label>
+              <Input id="variation" name="variation" value={formData.variation || ""} onChange={handleChange} />
+            </div>
           </div>
 
           {/* Localization Fields */}
@@ -383,7 +369,7 @@ export function ProductSheet({
             handleLocalizationChange("pl", field, value),
           )}
 
-          <SheetFooter className="mt-6 col-span-4">
+          <SheetFooter className="mt-6">
             <SheetClose asChild>
               <Button type="button" variant="outline">
                 {t("cancel")}
