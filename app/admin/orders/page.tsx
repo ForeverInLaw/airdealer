@@ -10,19 +10,41 @@ import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase-client"
 import { useI18n } from "@/lib/i18n/context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TableSkeleton, StatCardsSkeleton, PageHeaderSkeleton } from "@/components/animations/loading-skeleton"
 import { StaggeredFadeIn } from "@/components/animations/staggered-fade-in"
 import { motion } from "framer-motion"
+import { useMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
+
+// Мемоизированный компонент для предотвращения ненужных перерендеров
+const MemoizedOrderDataTable = React.memo(OrderDataTable)
 
 export default function OrdersPage() {
   const supabase = createClient()
   const { t } = useI18n()
+  const isMobile = useMobile()
   const [orders, setOrders] = React.useState<Order[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingOrder, setEditingOrder] = React.useState<Order | null>(null)
+  const [activeTab, setActiveTab] = React.useState("all")
   const { toast } = useToast()
+
+  // Ref для отслеживания позиции прокрутки
+  const scrollPositionRef = React.useRef<number>(0)
+  const tabContentRef = React.useRef<HTMLDivElement>(null)
+
+  // Устанавливаем CSS для предотвращения прокрутки
+  React.useEffect(() => {
+    // Отключаем плавную прокрутку глобально
+    document.documentElement.style.scrollBehavior = "auto"
+    document.body.style.scrollBehavior = "auto"
+
+    return () => {
+      document.documentElement.style.scrollBehavior = ""
+      document.body.style.scrollBehavior = ""
+    }
+  }, [])
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true)
@@ -58,41 +80,44 @@ export default function OrdersPage() {
     fetchData()
   }, [fetchData])
 
-  const handleEditOrder = (order: Order) => {
+  const handleEditOrder = React.useCallback((order: Order) => {
     setEditingOrder(order)
     setIsSheetOpen(true)
-  }
+  }, [])
 
-  const handleUpdateOrderStatus = async (orderId: number, newStatus: string, adminNotes?: string) => {
-    try {
-      const updateData: any = { status: newStatus }
-      if (adminNotes) {
-        updateData.admin_notes = adminNotes
+  const handleUpdateOrderStatus = React.useCallback(
+    async (orderId: number, newStatus: string, adminNotes?: string) => {
+      try {
+        const updateData: any = { status: newStatus }
+        if (adminNotes) {
+          updateData.admin_notes = adminNotes
+        }
+
+        const { error } = await supabase.from("orders").update(updateData).eq("id", orderId)
+
+        if (error) throw error
+
+        toast({
+          title: t("common.success"),
+          description: t("orders.statusUpdated"),
+        })
+        fetchData() // Refresh data
+      } catch (error: any) {
+        console.error("Error updating order status:", error)
+        toast({
+          variant: "destructive",
+          title: t("common.error"),
+          description: error.message || "Failed to update order status.",
+        })
       }
+    },
+    [supabase, toast, t, fetchData],
+  )
 
-      const { error } = await supabase.from("orders").update(updateData).eq("id", orderId)
-
-      if (error) throw error
-
-      toast({
-        title: t("common.success"),
-        description: t("orders.statusUpdated"),
-      })
-      fetchData() // Refresh data
-    } catch (error: any) {
-      console.error("Error updating order status:", error)
-      toast({
-        variant: "destructive",
-        title: t("common.error"),
-        description: error.message || "Failed to update order status.",
-      })
-    }
-  }
-
-  const handleSheetSave = () => {
+  const handleSheetSave = React.useCallback(() => {
     setIsSheetOpen(false)
     fetchData() // Refresh data after save
-  }
+  }, [fetchData])
 
   // Calculate statistics
   const totalOrders = orders.length
@@ -108,13 +133,42 @@ export default function OrdersPage() {
     .filter((o) => ["completed", "delivered"].includes(o.status))
     .reduce((sum, order) => sum + Number.parseFloat(order.total_amount), 0)
 
-  // Filter orders by status for tabs
-  const filterOrdersByStatus = (status: string[]) => {
-    return orders.filter((order) => status.includes(order.status))
-  }
+  // Мемоизированные отфильтрованные данные
+  const filteredData = React.useMemo(() => {
+    const filterOrdersByStatus = (status: string[]) => {
+      return orders.filter((order) => status.includes(order.status))
+    }
+
+    return {
+      all: orders,
+      pending: filterOrdersByStatus(["pending_admin_approval"]),
+      processing: filterOrdersByStatus(["admin_approved_pending_payment", "payment_received_processing"]),
+      shipped: filterOrdersByStatus(["shipped"]),
+      completed: filterOrdersByStatus(["completed", "delivered"]),
+      cancelled: filterOrdersByStatus(["cancelled_by_user", "rejected_by_admin"]),
+    }
+  }, [orders])
+
+  // Простая функция переключения вкладок без сохранения позиции
+  const handleTabChange = React.useCallback((value: string) => {
+    setActiveTab(value)
+  }, [])
+
+  // Определяем вкладки
+  const tabs = React.useMemo(
+    () => [
+      { id: "all", label: t("orders.all"), count: totalOrders },
+      { id: "pending", label: t("orders.pending"), count: pendingOrders },
+      { id: "processing", label: t("orders.processing"), count: processingOrders },
+      { id: "shipped", label: t("orders.shipped"), count: shippedOrders },
+      { id: "completed", label: t("orders.completed"), count: completedOrders },
+      { id: "cancelled", label: t("orders.cancelled"), count: cancelledOrders },
+    ],
+    [t, totalOrders, pendingOrders, processingOrders, shippedOrders, completedOrders, cancelledOrders],
+  )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" style={{ scrollBehavior: "auto" }}>
       {isLoading ? (
         <>
           <PageHeaderSkeleton />
@@ -267,72 +321,131 @@ export default function OrdersPage() {
                 <CardDescription>{t("orders.description")}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="all" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="all">
-                      {t("orders.all")} ({totalOrders})
-                    </TabsTrigger>
-                    <TabsTrigger value="pending">
-                      {t("orders.pending")} ({pendingOrders})
-                    </TabsTrigger>
-                    <TabsTrigger value="processing">
-                      {t("orders.processing")} ({processingOrders})
-                    </TabsTrigger>
-                    <TabsTrigger value="shipped">
-                      {t("orders.shipped")} ({shippedOrders})
-                    </TabsTrigger>
-                    <TabsTrigger value="completed">
-                      {t("orders.completed")} ({completedOrders})
-                    </TabsTrigger>
-                    <TabsTrigger value="cancelled">
-                      {t("orders.cancelled")} ({cancelledOrders})
-                    </TabsTrigger>
-                  </TabsList>
+                <div className="w-full">
+                  {/* Первый ряд вкладок */}
+                  <div
+                    className={`grid w-full ${isMobile ? "grid-cols-3" : "grid-cols-6"} gap-2 rounded-lg bg-muted p-1`}
+                    style={{ scrollBehavior: "auto" }}
+                  >
+                    {tabs.slice(0, isMobile ? 3 : 6).map((tab) => (
+                      <span
+                        key={tab.id}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            handleTabChange(tab.id)
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleTabChange(tab.id)
+                        }}
+                        className={cn(
+                          "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all cursor-pointer",
+                          "focus:outline-none",
+                          activeTab === tab.id
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                        style={{
+                          touchAction: "manipulation",
+                          WebkitTapHighlightColor: "transparent",
+                          scrollBehavior: "auto",
+                        }}
+                      >
+                        {isMobile ? tab.label : `${tab.label} (${tab.count})`}
+                      </span>
+                    ))}
+                  </div>
 
-                  <TabsContent value="all">
-                    <OrderDataTable data={orders} onEdit={handleEditOrder} onUpdateStatus={handleUpdateOrderStatus} />
-                  </TabsContent>
+                  {/* Второй ряд вкладок для мобильных */}
+                  {isMobile && (
+                    <div
+                      className="grid w-full grid-cols-3 gap-2 rounded-lg bg-muted p-1 mt-2"
+                      style={{ scrollBehavior: "auto" }}
+                    >
+                      {tabs.slice(3, 6).map((tab) => (
+                        <span
+                          key={tab.id}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              handleTabChange(tab.id)
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleTabChange(tab.id)
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all cursor-pointer",
+                            "focus:outline-none",
+                            activeTab === tab.id
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                          style={{
+                            touchAction: "manipulation",
+                            WebkitTapHighlightColor: "transparent",
+                            scrollBehavior: "auto",
+                          }}
+                        >
+                          {tab.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                  <TabsContent value="pending">
-                    <OrderDataTable
-                      data={filterOrdersByStatus(["pending_admin_approval"])}
-                      onEdit={handleEditOrder}
-                      onUpdateStatus={handleUpdateOrderStatus}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="processing">
-                    <OrderDataTable
-                      data={filterOrdersByStatus(["admin_approved_pending_payment", "payment_received_processing"])}
-                      onEdit={handleEditOrder}
-                      onUpdateStatus={handleUpdateOrderStatus}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="shipped">
-                    <OrderDataTable
-                      data={filterOrdersByStatus(["shipped"])}
-                      onEdit={handleEditOrder}
-                      onUpdateStatus={handleUpdateOrderStatus}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="completed">
-                    <OrderDataTable
-                      data={filterOrdersByStatus(["completed", "delivered"])}
-                      onEdit={handleEditOrder}
-                      onUpdateStatus={handleUpdateOrderStatus}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="cancelled">
-                    <OrderDataTable
-                      data={filterOrdersByStatus(["cancelled_by_user", "rejected_by_admin"])}
-                      onEdit={handleEditOrder}
-                      onUpdateStatus={handleUpdateOrderStatus}
-                    />
-                  </TabsContent>
-                </Tabs>
+                  {/* Содержимое вкладок без анимации */}
+                  <div className="mt-4" ref={tabContentRef} style={{ scrollBehavior: "auto" }}>
+                    {activeTab === "all" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.all}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                    {activeTab === "pending" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.pending}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                    {activeTab === "processing" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.processing}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                    {activeTab === "shipped" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.shipped}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                    {activeTab === "completed" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.completed}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                    {activeTab === "cancelled" && (
+                      <MemoizedOrderDataTable
+                        data={filteredData.cancelled}
+                        onEdit={handleEditOrder}
+                        onUpdateStatus={handleUpdateOrderStatus}
+                      />
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

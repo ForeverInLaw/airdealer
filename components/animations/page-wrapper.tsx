@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 
 interface PageWrapperProps {
@@ -9,31 +8,18 @@ interface PageWrapperProps {
 }
 
 export function PageWrapper({ children }: PageWrapperProps) {
-  const pathname = usePathname()
-
   return (
     <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        transition: {
-          duration: 0.4,
-          ease: [0.25, 0.46, 0.45, 0.94], // iOS-like easing
-        },
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{
+        type: "spring",
+        stiffness: 260,
+        damping: 20,
       }}
-      exit={{
-        opacity: 0,
-        y: -20,
-        scale: 0.95,
-        transition: {
-          duration: 0.3,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        },
-      }}
-      className="w-full"
+      className="p-4 md:p-6"
+      suppressHydrationWarning
     >
       {children}
     </motion.div>

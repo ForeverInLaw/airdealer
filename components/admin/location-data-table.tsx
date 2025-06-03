@@ -10,7 +10,8 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown, MapPin } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,9 +23,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
 import type { Location } from "@/lib/types"
 import { format } from "date-fns"
 import { useI18n } from "@/lib/i18n/context"
+import { useMobile } from "@/hooks/use-mobile"
 
 interface LocationDataTableProps {
   data: Location[]
@@ -35,6 +38,7 @@ interface LocationDataTableProps {
 export function LocationDataTable({ data, onEdit, onDelete }: LocationDataTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const { t } = useI18n()
+  const isMobile = useMobile()
 
   const columns: ColumnDef<Location>[] = [
     {
@@ -107,11 +111,93 @@ export function LocationDataTable({ data, onEdit, onDelete }: LocationDataTableP
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: isMobile ? 5 : 10,
       },
     },
   })
 
+  // Mobile card view
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        <AnimatePresence>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row, index) => {
+              const location = row.original
+              return (
+                <motion.div
+                  key={location.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      delay: index * 0.05,
+                      duration: 0.3,
+                      ease: [0.25, 0.46, 0.45, 0.94],
+                    },
+                  }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <h3 className="font-medium text-sm truncate">{location.name}</h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                            {location.address || "Адрес не указан"}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>ID: {location.id}</span>
+                            <span>{format(new Date(location.created_at), "dd.MM.yyyy")}</span>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEdit(location)}>{t("locations.edit")}</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onDelete(location.id)} className="text-red-600">
+                              {t("locations.delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">{t("locations.no_results")}</div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            {t("locations.previous")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            {t("locations.next")}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop table view
   return (
     <div>
       <div className="rounded-md border">

@@ -1,17 +1,18 @@
 "use client"
 
 import * as React from "react"
-import Image from "next/image"
 import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   type SortingState,
+  type ColumnFiltersState,
   useReactTable,
 } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown, Search, Package } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -23,9 +24,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
 import type { Product } from "@/lib/types"
+import { format } from "date-fns"
 import { useI18n } from "@/lib/i18n/context"
+import { useMobile } from "@/hooks/use-mobile"
 
 interface ProductDataTableProps {
   data: Product[]
@@ -35,7 +40,12 @@ interface ProductDataTableProps {
 
 export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = React.useState("")
   const { t } = useI18n()
+  const isMobile = useMobile()
+
+  console.log("ProductDataTable - isMobile:", isMobile, "data length:", data.length)
 
   const columns: ColumnDef<Product>[] = [
     {
@@ -49,82 +59,58 @@ export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTablePro
     },
     {
       accessorKey: "image_url",
-      header: t("products.image"),
-      cell: ({ row }) => (
-        <motion.div whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-          <Image
-            src={row.getValue("image_url") || "/placeholder.svg?width=40&height=40"}
-            alt={row.original.name}
-            width={40}
-            height={40}
-            className="rounded-sm object-cover"
-          />
-        </motion.div>
-      ),
+      header: () => t("products.image"),
+      cell: ({ row }) => {
+        const imageUrl = row.getValue("image_url") as string
+        return (
+          <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+            {imageUrl ? (
+              <img src={imageUrl || "/placeholder.svg"} alt="Product" className="w-full h-full object-cover" />
+            ) : (
+              <Package className="h-6 w-6 text-muted-foreground" />
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: "name",
-      header: t("products.name"),
+      header: () => t("products.name"),
     },
     {
       accessorKey: "manufacturer_name",
-      header: t("products.manufacturer"),
+      header: () => t("products.manufacturer"),
     },
     {
       accessorKey: "category_name",
-      header: t("products.category"),
+      header: () => t("products.category"),
     },
     {
       accessorKey: "price",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-right w-full justify-end"
-        >
-          {t("products.price")}
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
+      header: () => t("products.price"),
       cell: ({ row }) => {
-        const amount = Number.parseFloat(row.getValue("price"))
-        const formatted = new Intl.NumberFormat("pl-PL", {
+        const price = Number.parseFloat(row.getValue("price"))
+        return new Intl.NumberFormat("ru-RU", {
           style: "currency",
-          currency: "PLN",
-        }).format(amount)
-        return <div className="text-right font-medium">{formatted}</div>
+          currency: "RUB",
+        }).format(price)
       },
     },
     {
-      accessorKey: "cost",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-right w-full justify-end"
-        >
-          {t("products.cost")}
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        const amount = Number.parseFloat(row.getValue("cost"))
-        const formatted = new Intl.NumberFormat("pl-PL", {
-          style: "currency",
-          currency: "PLN",
-        }).format(amount)
-        return <div className="text-right font-medium text-muted-foreground">{formatted}</div>
-      },
+      accessorKey: "created_at",
+      header: () => t("products.created_at"),
+      cell: ({ row }) => format(new Date(row.getValue("created_at")), "PPP p"),
     },
     {
       id: "actions",
+      header: () => t("products.actions"),
       cell: ({ row }) => {
         const product = row.original
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{t("products.openMenu")}</span>
+                <span className="sr-only">{t("products.open_menu")}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -132,10 +118,7 @@ export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTablePro
               <DropdownMenuLabel>{t("products.actions")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onEdit(product)}>{t("products.edit")}</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(product.id)}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-              >
+              <DropdownMenuItem onClick={() => onDelete(product.id)} className="text-red-600">
                 {t("products.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -152,13 +135,144 @@ export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTablePro
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: "includesString",
     state: {
       sorting,
+      columnFilters,
+      globalFilter,
+    },
+    initialState: {
+      pagination: {
+        pageSize: isMobile ? 5 : 10,
+      },
     },
   })
 
+  // Mobile card view
+  if (isMobile) {
+    console.log("Rendering mobile cards for products")
+    return (
+      <div className="space-y-4">
+        {/* Поиск для мобильных */}
+        <div className="flex items-center space-x-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("products.search_placeholder")}
+            value={globalFilter ?? ""}
+            onChange={(event) => setGlobalFilter(String(event.target.value))}
+            className="max-w-sm"
+          />
+        </div>
+
+        <AnimatePresence>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row, index) => {
+              const product = row.original
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      delay: index * 0.05,
+                      duration: 0.3,
+                      ease: [0.25, 0.46, 0.45, 0.94],
+                    },
+                  }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url || "/placeholder.svg"}
+                              alt="Product"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Package className="h-6 w-6 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.name}</h3>
+                              <p className="text-xs text-muted-foreground mb-1">{product.manufacturer_name}</p>
+                              <p className="text-xs text-muted-foreground mb-2">{product.category_name}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-green-600">
+                                  {new Intl.NumberFormat("ru-RU", {
+                                    style: "currency",
+                                    currency: "RUB",
+                                  }).format(Number.parseFloat(product.price))}
+                                </span>
+                                <span className="text-xs text-muted-foreground">ID: {product.id}</span>
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEdit(product)}>
+                                  {t("products.edit")}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => onDelete(product.id)} className="text-red-600">
+                                  {t("products.delete")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">{t("products.no_results")}</div>
+          )}
+        </AnimatePresence>
+
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            {t("products.previous")}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            {t("products.next")}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Desktop table view
   return (
     <div>
+      <div className="flex items-center py-4">
+        <Input
+          placeholder={t("products.search_placeholder")}
+          value={globalFilter ?? ""}
+          onChange={(event) => setGlobalFilter(String(event.target.value))}
+          className="max-w-sm"
+        />
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -175,41 +289,21 @@ export function ProductDataTable({ data, onEdit, onDelete }: ProductDataTablePro
             ))}
           </TableHeader>
           <TableBody>
-            <AnimatePresence>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <motion.tr
-                    key={row.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                      transition: {
-                        delay: index * 0.05,
-                        duration: 0.3,
-                        ease: [0.25, 0.46, 0.45, 0.94],
-                      },
-                    }}
-                    exit={{ opacity: 0, y: -20 }}
-                    whileHover={{
-                      backgroundColor: "rgba(0, 0, 0, 0.02)",
-                      transition: { duration: 0.2 },
-                    }}
-                    className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    ))}
-                  </motion.tr>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    {t("products.noResults")}
-                  </TableCell>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                  ))}
                 </TableRow>
-              )}
-            </AnimatePresence>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  {t("products.no_results")}
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

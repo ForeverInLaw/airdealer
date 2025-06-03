@@ -9,11 +9,13 @@ import { motion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { getDashboardStats, type DashboardStats } from "@/lib/dashboard-stats"
 import { LoadingSkeleton } from "@/components/animations/loading-skeleton"
+import { useMobile } from "@/hooks/use-mobile"
 
 export default function AdminDashboardPage() {
   const { t } = useI18n()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const isMobile = useMobile()
 
   useEffect(() => {
     async function loadStats() {
@@ -40,7 +42,7 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <PageWrapper>
-        <div className="space-apple-lg">
+        <div className="space-y-4">
           <LoadingSkeleton />
         </div>
       </PageWrapper>
@@ -80,16 +82,17 @@ export default function AdminDashboardPage() {
 
   return (
     <PageWrapper>
-      <div className="space-apple-lg">
+      <div className="space-y-4 md:space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="hidden md:block"
         >
-          <h1 className="text-display">{t("dashboard.title")}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{t("dashboard.title")}</h1>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "md:grid-cols-2 lg:grid-cols-4")}>
           {statsData.map((stat, index) => (
             <motion.div
               key={stat.title}
@@ -107,7 +110,7 @@ export default function AdminDashboardPage() {
             >
               <Card className="surface-elevated hover:surface-elevated-high transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-callout text-muted-foreground font-medium">{stat.title}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -115,9 +118,9 @@ export default function AdminDashboardPage() {
                     <stat.icon className={cn("h-5 w-5", stat.color)} />
                   </motion.div>
                 </CardHeader>
-                <CardContent className="space-apple-xs">
+                <CardContent className="space-y-1">
                   <motion.div
-                    className="text-title-1 font-bold"
+                    className="text-xl md:text-2xl font-bold"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{
@@ -129,7 +132,7 @@ export default function AdminDashboardPage() {
                   >
                     {stat.value}
                   </motion.div>
-                  <p className="text-caption-2">{stat.change}</p>
+                  <p className="text-xs text-muted-foreground">{stat.change}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -143,12 +146,12 @@ export default function AdminDashboardPage() {
         >
           <Card className="surface-elevated">
             <CardHeader>
-              <CardTitle className="text-title-2">{t("dashboard.recentActivity")}</CardTitle>
-              <CardDescription className="text-subhead">Последние действия в системе</CardDescription>
+              <CardTitle className="text-lg md:text-xl">{t("dashboard.recentActivity")}</CardTitle>
+              <CardDescription className="text-sm">Последние действия в системе</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-32">
-                <p className="text-body text-muted-foreground">
+              <div className="flex items-center justify-center h-24 md:h-32">
+                <p className="text-sm md:text-base text-muted-foreground text-center">
                   {stats?.pendingOrders && stats.pendingOrders > 0
                     ? `${stats.pendingOrders} заказов ожидают подтверждения`
                     : t("dashboard.noActivity")}

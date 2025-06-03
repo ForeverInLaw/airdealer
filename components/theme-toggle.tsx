@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
@@ -22,6 +22,8 @@ export function ThemeToggle() {
     )
   }
 
+  const isDark = resolvedTheme === "dark"
+
   return (
     <motion.div
       whileHover={{ scale: 1.1 }}
@@ -31,16 +33,16 @@ export function ThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
         className="h-9 w-9 md:h-8 md:w-8 text-muted-foreground hover:text-foreground transition-colors"
-        title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+        title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       >
         <motion.div
           initial={false}
-          animate={{ rotate: theme === "dark" ? 180 : 0 }}
+          animate={{ rotate: isDark ? 180 : 0 }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </motion.div>
         <span className="sr-only">Toggle theme</span>
       </Button>

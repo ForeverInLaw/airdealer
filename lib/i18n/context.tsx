@@ -61,6 +61,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.dashboard": "Dashboard",
     "nav.products": "Products",
     "nav.productStock": "Product Stock",
+    "nav.product-stock": "Product Stock",
     "nav.orders": "Orders",
     "nav.users": "Users",
     "nav.locations": "Locations",
@@ -68,6 +69,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.categories": "Categories",
     "nav.interfaceTexts": "Interface Texts",
     "nav.admins": "Admins",
+    "nav.admin": "Dashboard",
     "nav.settings": "Settings",
     "nav.logout": "Logout",
 
@@ -136,6 +138,7 @@ const translations: Record<Language, Record<string, string>> = {
     "products.previous": "Previous",
     "products.next": "Next",
     "products.id": "ID",
+    "products.search_placeholder": "Search products...",
     "products.internal_fallback_name": "Internal/Fallback Name",
     "products.sku_or_primary_name": "SKU or primary name",
     "products.update_product_details_and_localizations": "Update product details and localizations.",
@@ -183,6 +186,11 @@ const translations: Record<Language, Record<string, string>> = {
     "orders.processing": "Processing",
     "orders.shipped": "Shipped",
     "orders.completed": "Completed",
+    "orders.statusPendingAdminapproval": "Pending Admin Approval",
+    "orders.statusAdminApprovedPendingpayment": "Pending Payment",
+    "orders.statusPaymentReceivedProcessing": "Processing Payment",
+    "orders.statusCancelledByuser": "Cancelled by User",
+    "orders.statusRejectedByadmin": "Rejected by Admin",
     "orders.cancelled": "Cancelled",
     "orders.revenue": "Revenue",
     "orders.totalOrders": "Total Orders",
@@ -202,6 +210,8 @@ const translations: Record<Language, Record<string, string>> = {
     "orders.subtotal": "Subtotal",
     "orders.deliveryCost": "Delivery Cost",
     "orders.finalTotal": "Final Total",
+    "orders.previous": "Previous",
+    "orders.next": "Next",
 
     // Users
     "users.title": "Users",
@@ -420,6 +430,10 @@ const translations: Record<Language, Record<string, string>> = {
     "locations.add_new_location": "Add New Location",
     "locations.fill_details": "Fill in the details for the new location.",
     "locations.enter_full_address": "Enter full address",
+    "locations.previous": "Previous",
+    "locations.next": "Next",
+    "locations.no_results": "No results.",
+    "locations.open_menu": "Open menu",
 
     // Common
     "common.id": "ID",
@@ -455,12 +469,22 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.accessDenied": "Access Denied",
     "auth.pendingApproval": "Pending Approval",
     "auth.notAdmin": "Not an Administrator",
+    // Order Status Keys - добавить в секцию en:
+    "orders.status.pending_admin_approval": "Pending Admin Approval",
+    "orders.status.admin_approved_pending_payment": "Pending Payment",
+    "orders.status.payment_received_processing": "Processing Payment",
+    "orders.status.shipped": "Shipped",
+    "orders.status.delivered": "Delivered",
+    "orders.status.completed": "Completed",
+    "orders.status.cancelled_by_user": "Cancelled by User",
+    "orders.status.rejected_by_admin": "Rejected by Admin",
   },
   ru: {
     // Navigation
     "nav.dashboard": "Панель управления",
     "nav.products": "Товары",
     "nav.productStock": "Склад товаров",
+    "nav.product-stock": "Склад товаров",
     "nav.orders": "Заказы",
     "nav.users": "Пользователи",
     "nav.locations": "Локации",
@@ -468,6 +492,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.categories": "Категории",
     "nav.interfaceTexts": "Тексты интерфейса",
     "nav.admins": "Администраторы",
+    "nav.admin": "Панель управления",
     "nav.settings": "Настройки",
     "nav.logout": "Выход",
 
@@ -537,6 +562,7 @@ const translations: Record<Language, Record<string, string>> = {
     "products.previous": "Предыдущая",
     "products.next": "Следующая",
     "products.id": "ID",
+    "products.search_placeholder": "Поиск товаров...",
     "products.internal_fallback_name": "Внутреннее/Резервное имя",
     "products.sku_or_primary_name": "SKU или основное название",
     "products.update_product_details_and_localizations": "Обновить детали товара и локализации.",
@@ -584,7 +610,12 @@ const translations: Record<Language, Record<string, string>> = {
     "orders.pending": "Ожидающие",
     "orders.processing": "В обработке",
     "orders.shipped": "Отправлены",
-    "orders.completed": "Завершены",
+    "orders.completed": "Завершен",
+    "orders.statusPendingAdminapproval": "Ожидает подтверждения администратора",
+    "orders.statusAdminApprovedPendingpayment": "Ожидает оплаты",
+    "orders.statusPaymentReceivedProcessing": "Обработка платежа",
+    "orders.statusCancelledByuser": "Отменен пользователем",
+    "orders.statusRejectedByadmin": "Отклонен администратором",
     "orders.cancelled": "Отменены",
     "orders.revenue": "Выручка",
     "orders.totalOrders": "Всего заказов",
@@ -604,6 +635,8 @@ const translations: Record<Language, Record<string, string>> = {
     "orders.subtotal": "Подытог",
     "orders.deliveryCost": "Стоимость доставки",
     "orders.finalTotal": "Итого к оплате",
+    "orders.previous": "Предыдущая",
+    "orders.next": "Следующая",
 
     // Users
     "users.title": "Пользователи",
@@ -825,6 +858,10 @@ const translations: Record<Language, Record<string, string>> = {
     "locations.add_new_location": "Добавить новую локацию",
     "locations.fill_details": "Заполнить детали новой локации.",
     "locations.enter_full_address": "Введите полный адрес",
+    "locations.previous": "Предыдущая",
+    "locations.next": "Следующая",
+    "locations.no_results": "Нет результатов.",
+    "locations.open_menu": "Открыть меню",
 
     // Common
     "common.id": "ID",
@@ -861,5 +898,14 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.accessDenied": "Доступ запрещен",
     "auth.pendingApproval": "Ожидание одобрения",
     "auth.notAdmin": "Не администратор",
+    // Order Status Keys - добавить в секцию ru:
+    "orders.status.pending_admin_approval": "Ожидает подтверждения администратора",
+    "orders.status.admin_approved_pending_payment": "Ожидает оплаты",
+    "orders.status.payment_received_processing": "Обработка платежа",
+    "orders.status.shipped": "Отправлен",
+    "orders.status.delivered": "Доставлен",
+    "orders.status.completed": "Завершен",
+    "orders.status.cancelled_by_user": "Отменен пользователем",
+    "orders.status.rejected_by_admin": "Отклонен администратором",
   },
 }

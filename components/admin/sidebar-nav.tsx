@@ -11,7 +11,6 @@ import {
   MapPin,
   Building,
   LayoutGrid,
-  Languages,
   ShieldCheck,
   Settings,
   Warehouse,
@@ -37,7 +36,6 @@ export default function SidebarNav() {
     { href: "/admin/locations", label: "Locations", icon: MapPin },
     { href: "/admin/manufacturers", label: "Manufacturers", icon: Building },
     { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
-    { href: "/admin/interface-texts", label: "Interface Texts", icon: Languages },
     { href: "/admin/admins", label: "Admins", icon: ShieldCheck },
   ]
 
