@@ -38,7 +38,7 @@ export default function ProductsPage() {
           categories (id, name),
           product_localization (*)
         `)
-        .order("id", { ascending: true })
+        .order("name", { ascending: true })
 
       if (productsError) throw productsError
 
