@@ -1,12 +1,14 @@
 "use client"
 
 import * as React from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { PlusCircle, Warehouse, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ProductStockDataTable } from "@/components/admin/product-stock-data-table"
 import { ProductStockSheet } from "@/components/admin/product-stock-sheet"
-import type { ProductStock, Product, Location, ProductLocalization } from "@/lib/types"
+import type { ProductStock, Product, Location, Manufacturer, ProductLocalization } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import { createClient } from "@/lib/supabase-client"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -18,104 +20,114 @@ import { motion } from "framer-motion"
 export default function ProductStockPage() {
   const supabase = createClient()
   const { t } = useI18n()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [stocks, setStocks] = React.useState<ProductStock[]>([])
   const [products, setProducts] = React.useState<Product[]>([])
   const [locations, setLocations] = React.useState<Location[]>([])
+  const [manufacturers, setManufacturers] = React.useState<Manufacturer[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [isInitialLoad, setIsInitialLoad] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingStock, setEditingStock] = React.useState<ProductStock | null>(null)
   const { toast } = useToast()
 
-  const fetchData = React.useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // Добавляем искусственную задержку для демонстрации анимации загрузки
-      await new Promise((resolve) => setTimeout(resolve, 800))
+  const fetchData = React.useCallback(
+    async (filters: { manufacturerId: string | null; locationId: string | null }) => {
+      setIsLoading(true)
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 800))
 
-      // Fetch stock data with separate queries to avoid relationship conflicts
-      const { data: stockData, error: stockError } = await supabase
-        .from("product_stock")
-        .select("product_id, location_id, quantity, updated_at")
-        .order("updated_at", { ascending: false })
+        // Fetch all reference data for filters and sheets
+        const { data: productsData, error: productsError } = await supabase.from("products").select(`id, name, product_localization(language_code, name)`)
+        if (productsError) throw productsError
 
-      if (stockError) throw stockError
+        const { data: locationsData, error: locationsError } = await supabase.from("locations").select("*").order("name")
+        if (locationsError) throw locationsError
 
-      // Fetch products separately
-      const { data: productsData, error: productsError } = await supabase
-        .from("products")
-        .select(`
-          id,
-          name,
-          product_localization (
-            language_code,
-            name,
-            description
-          )
-        `)
-        .order("name", { ascending: true })
-      if (productsError) throw productsError
+        const { data: manufacturersData, error: manufacturersError } = await supabase.from("manufacturers").select("*").order("name")
+        if (manufacturersError) throw manufacturersError
+        
+        setLocations(locationsData || [])
+        setManufacturers(manufacturersData || [])
 
-      // Fetch locations separately
-      const { data: locationsData, error: locationsError } = await supabase
-        .from("locations")
-        .select("id, name, address")
-        .order("name", { ascending: true })
-      if (locationsError) throw locationsError
+        // Create lookup maps for combining data later
+        const productsMap = new Map(productsData.map((p: any) => {
+            const enLocalization = p.product_localization?.find((loc: ProductLocalization) => loc.language_code === "en")
+            return [p.id, { ...p, display_name: enLocalization?.name || p.name }]
+        }))
+        setProducts(Array.from(productsMap.values()))
 
-      // Create lookup maps
-      const productsMap = new Map()
-      productsData?.forEach((p: any) => {
-        const enLocalization = p.product_localization?.find((loc: ProductLocalization) => loc.language_code === "en")
-        productsMap.set(p.id, {
-          ...p,
-          display_name: enLocalization?.name || p.name,
-          localizations: p.product_localization || [],
+        const locationsMap = new Map(locationsData.map((l: any) => [l.id, l]))
+
+        // Build the product_stock query with filters
+        let stockQuery = supabase.from("product_stock").select("product_id, location_id, quantity, updated_at")
+
+        if (filters.locationId) {
+          stockQuery = stockQuery.eq("location_id", filters.locationId)
+        }
+        
+        // If filtering by manufacturer, we need to get product IDs first
+        if (filters.manufacturerId) {
+            const { data: manufacturerProducts, error: manProdError } = await supabase
+                .from("products")
+                .select("id")
+                .eq("manufacturer_id", filters.manufacturerId)
+            
+            if (manProdError) throw manProdError
+            
+            const productIds = manufacturerProducts.map(p => p.id)
+            if (productIds.length > 0) {
+                stockQuery = stockQuery.in("product_id", productIds)
+            } else {
+                // If no products for this manufacturer, no stock records will be found
+                setStocks([])
+                setIsLoading(false)
+                setIsInitialLoad(false)
+                return
+            }
+        }
+
+        const { data: stockData, error: stockError } = await stockQuery.order("updated_at", { ascending: false })
+        if (stockError) throw stockError
+
+        // Format stock data for display
+        const formattedStocks = stockData?.map((s: any) => {
+            const product = productsMap.get(s.product_id)
+            const location = locationsMap.get(s.location_id)
+            return {
+              product_id: s.product_id,
+              location_id: s.location_id,
+              quantity: s.quantity,
+              updated_at: s.updated_at,
+              product_name: product?.name || "Unknown Product",
+              product_display_name: product?.display_name || product?.name || "Unknown Product",
+              location_name: location?.name || "Unknown Location",
+            }
+          }) || []
+
+        setStocks(formattedStocks)
+      } catch (error: any) {
+        console.error("Error fetching stock data:", error)
+        toast({
+          variant: "destructive",
+          title: t("common.error"),
+          description: error.message || "Failed to load stock data from Supabase.",
         })
-      })
-
-      const locationsMap = new Map()
-      locationsData?.forEach((l: any) => {
-        locationsMap.set(l.id, l)
-      })
-
-      // Format stock data for display
-      const formattedStocks =
-        stockData?.map((s: any) => {
-          const product = productsMap.get(s.product_id)
-          const location = locationsMap.get(s.location_id)
-
-          return {
-            product_id: s.product_id,
-            location_id: s.location_id,
-            quantity: s.quantity,
-            updated_at: s.updated_at,
-            product_name: product?.name || "Unknown Product",
-            product_display_name: product?.display_name || product?.name || "Unknown Product",
-            location_name: location?.name || "Unknown Location",
-          }
-        }) || []
-
-      // Format products for dropdown
-      const formattedProducts = Array.from(productsMap.values())
-
-      setStocks(formattedStocks)
-      setProducts(formattedProducts)
-      setLocations(locationsData || [])
-    } catch (error: any) {
-      console.error("Error fetching stock data:", error)
-      toast({
-        variant: "destructive",
-        title: t("common.error"),
-        description: error.message || "Failed to load stock data from Supabase.",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [supabase, toast, t])
+      } finally {
+        setIsLoading(false)
+        setIsInitialLoad((prev) => prev ? false : prev)
+      }
+    },
+    [supabase, toast, t]
+  )
 
   React.useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    const manufacturerId = searchParams.get("manufacturer")
+    const locationId = searchParams.get("location")
+    fetchData({ manufacturerId, locationId })
+  }, [searchParams, fetchData])
 
   const handleAddStock = () => {
     setEditingStock(null)
@@ -128,17 +140,12 @@ export default function ProductStockPage() {
   }
 
   const handleDeleteStock = async (productId: number, locationId: number) => {
-    if (!confirm(t("stock.removeConfirm"))) {
-      return
-    }
+    if (!confirm(t("stock.removeConfirm"))) return
     try {
-      const { error } = await supabase
-        .from("product_stock")
-        .delete()
-        .match({ product_id: productId, location_id: locationId })
+      const { error } = await supabase.from("product_stock").delete().match({ product_id: productId, location_id: locationId })
       if (error) throw error
       toast({ title: t("common.success"), description: t("stock.removeSuccess") })
-      fetchData() // Refresh data
+      fetchData({ manufacturerId: searchParams.get("manufacturer"), locationId: searchParams.get("location") })
     } catch (error: any) {
       console.error("Error deleting stock:", error)
       toast({
@@ -151,17 +158,26 @@ export default function ProductStockPage() {
 
   const handleSheetSave = () => {
     setIsSheetOpen(false)
-    fetchData() // Refresh data after save
+    fetchData({ manufacturerId: searchParams.get("manufacturer"), locationId: searchParams.get("location") })
   }
 
-  // Calculate some statistics
+  const handleFilterChange = (type: "manufacturer" | "location", value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value === "all") {
+      params.delete(type)
+    } else {
+      params.set(type, value)
+    }
+    router.push(`/admin/product-stock?${params.toString()}`)
+  }
+
   const lowStockItems = stocks.filter((s) => s.quantity > 0 && s.quantity < 10).length
   const outOfStockItems = stocks.filter((s) => s.quantity === 0).length
   const totalStockRecords = stocks.length
 
   return (
     <div className="flex flex-col gap-4">
-      {isLoading ? (
+      {isInitialLoad ? (
         <>
           <PageHeaderSkeleton />
           <StatCardsSkeleton />
@@ -190,7 +206,6 @@ export default function ProductStockPage() {
             </motion.div>
           </motion.div>
 
-          {/* Stock Statistics */}
           <div className="grid gap-4 md:grid-cols-3">
             <StaggeredFadeIn delay={0.1}>
               {[
@@ -248,7 +263,6 @@ export default function ProductStockPage() {
             </StaggeredFadeIn>
           </div>
 
-          {/* Alerts for stock issues */}
           {(lowStockItems > 0 || outOfStockItems > 0) && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -275,8 +289,42 @@ export default function ProductStockPage() {
               <CardHeader>
                 <CardTitle>{t("stock.manage")}</CardTitle>
                 <CardDescription>{t("stock.description")}</CardDescription>
+                <div className="flex flex-wrap gap-4 pt-4">
+                  <Select
+                    onValueChange={(value) => handleFilterChange("manufacturer", value)}
+                    value={searchParams.get("manufacturer") || "all"}
+                  >
+                    <SelectTrigger className="w-full sm:w-[240px]">
+                      <SelectValue placeholder={t("stock.filter_by_manufacturer")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("stock.all_manufacturers")}</SelectItem>
+                      {manufacturers.map((m) => (
+                        <SelectItem key={m.id} value={m.id.toString()}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    onValueChange={(value) => handleFilterChange("location", value)}
+                    value={searchParams.get("location") || "all"}
+                  >
+                    <SelectTrigger className="w-full sm:w-[240px]">
+                      <SelectValue placeholder={t("stock.filter_by_location")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("stock.all_locations")}</SelectItem>
+                      {locations.map((l) => (
+                        <SelectItem key={l.id} value={l.id.toString()}>
+                          {l.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isLoading ? "opacity-50 transition-opacity" : ""}>
                 <ProductStockDataTable data={stocks} onEdit={handleEditStock} onDelete={handleDeleteStock} />
               </CardContent>
             </Card>

@@ -148,6 +148,7 @@ const translations: Record<Language, Record<string, string>> = {
     "products.price_cost_valid_numbers": "Price and Cost must be valid numbers",
     "products.edit_product": "Edit Product",
     "products.add_new_product": "Add New Product",
+    "products.all_manufacturers": "All Manufacturers",
 
     // Orders
     "orders.title": "Orders",
@@ -341,6 +342,10 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.alertDescription":
       "{outOfStock} item(s) are out of stock. {lowStock} item(s) have low stock levels. Consider restocking these items.",
     "stock.loading": "Loading stock data from Supabase...",
+    "stock.filter_by_manufacturer": "Filter by manufacturer",
+    "stock.all_manufacturers": "All Manufacturers",
+    "stock.filter_by_location": "Filter by location",
+    "stock.all_locations": "All Locations",
 
     // Manufacturers
     "manufacturers.title": "Manufacturers",
@@ -572,6 +577,7 @@ const translations: Record<Language, Record<string, string>> = {
     "products.price_cost_valid_numbers": "Цена и себестоимость должны быть действительными числами",
     "products.edit_product": "Редактировать товар",
     "products.add_new_product": "Добавить новый товар",
+    "products.all_manufacturers": "Все производители",
 
     // Orders
     "orders.title": "Заказы",
@@ -768,6 +774,10 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.alertDescription":
       "{outOfStock} товар(ов) нет в наличии. {lowStock} товар(ов) имеют низкий уровень запасов. Рассмотрите возможность пополнения этих товаров.",
     "stock.loading": "Загрузка данных о запасах из Supabase...",
+    "stock.filter_by_manufacturer": "Фильтр по производителю",
+    "stock.all_manufacturers": "Все производители",
+    "stock.filter_by_location": "Фильтр по локации",
+    "stock.all_locations": "Все локации",
 
     // Manufacturers
     "manufacturers.title": "Производители",
