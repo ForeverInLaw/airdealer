@@ -17,7 +17,7 @@ import { TableSkeleton, StatCardsSkeleton, PageHeaderSkeleton } from "@/componen
 import { StaggeredFadeIn } from "@/components/animations/staggered-fade-in"
 import { motion } from "framer-motion"
 
-export default function ProductStockPage() {
+function ProductStockPageContent() {
   const supabase = createClient()
   const { t } = useI18n()
   const router = useRouter()
@@ -39,7 +39,6 @@ export default function ProductStockPage() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 800))
 
-        // Fetch all reference data for filters and sheets
         const { data: productsData, error: productsError } = await supabase.from("products").select(`id, name, product_localization(language_code, name)`)
         if (productsError) throw productsError
 
@@ -52,7 +51,6 @@ export default function ProductStockPage() {
         setLocations(locationsData || [])
         setManufacturers(manufacturersData || [])
 
-        // Create lookup maps for combining data later
         const productsMap = new Map(productsData.map((p: any) => {
             const enLocalization = p.product_localization?.find((loc: ProductLocalization) => loc.language_code === "en")
             return [p.id, { ...p, display_name: enLocalization?.name || p.name }]
@@ -61,14 +59,12 @@ export default function ProductStockPage() {
 
         const locationsMap = new Map(locationsData.map((l: any) => [l.id, l]))
 
-        // Build the product_stock query with filters
         let stockQuery = supabase.from("product_stock").select("product_id, location_id, quantity, updated_at")
 
         if (filters.locationId) {
           stockQuery = stockQuery.eq("location_id", filters.locationId)
         }
         
-        // If filtering by manufacturer, we need to get product IDs first
         if (filters.manufacturerId) {
             const { data: manufacturerProducts, error: manProdError } = await supabase
                 .from("products")
@@ -81,7 +77,6 @@ export default function ProductStockPage() {
             if (productIds.length > 0) {
                 stockQuery = stockQuery.in("product_id", productIds)
             } else {
-                // If no products for this manufacturer, no stock records will be found
                 setStocks([])
                 setIsLoading(false)
                 setIsInitialLoad(false)
@@ -92,7 +87,6 @@ export default function ProductStockPage() {
         const { data: stockData, error: stockError } = await stockQuery.order("updated_at", { ascending: false })
         if (stockError) throw stockError
 
-        // Format stock data for display
         const formattedStocks = stockData?.map((s: any) => {
             const product = productsMap.get(s.product_id)
             const location = locationsMap.get(s.location_id)
@@ -117,7 +111,7 @@ export default function ProductStockPage() {
         })
       } finally {
         setIsLoading(false)
-        setIsInitialLoad((prev) => prev ? false : prev)
+        setIsInitialLoad((prev) => (prev ? false : prev))
       }
     },
     [supabase, toast, t]
@@ -175,162 +169,162 @@ export default function ProductStockPage() {
   const outOfStockItems = stocks.filter((s) => s.quantity === 0).length
   const totalStockRecords = stocks.length
 
+  if (isInitialLoad) {
+    return (
+      <>
+        <PageHeaderSkeleton />
+        <StatCardsSkeleton />
+        <div className="space-y-4">
+          <div className="h-6 w-48 bg-muted animate-pulse rounded" />
+          <TableSkeleton />
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {isInitialLoad ? (
-        <>
-          <PageHeaderSkeleton />
-          <StatCardsSkeleton />
-          <div className="space-y-4">
-            <div className="h-6 w-48 bg-muted animate-pulse rounded" />
-            <TableSkeleton />
-          </div>
-        </>
-      ) : (
-        <>
-          <motion.div
-            className="flex items-center justify-between"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="flex items-center gap-2">
-              <Warehouse className="h-6 w-6" />
-              <h1 className="text-2xl font-semibold">{t("stock.title")}</h1>
-            </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button onClick={handleAddStock} size="sm" className="gap-1">
-                <PlusCircle className="h-4 w-4" />
-                {t("stock.addRecord")}
-              </Button>
-            </motion.div>
-          </motion.div>
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center gap-2">
+          <Warehouse className="h-6 w-6" />
+          <h1 className="text-2xl font-semibold">{t("stock.title")}</h1>
+        </div>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button onClick={handleAddStock} size="sm" className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            {t("stock.addRecord")}
+          </Button>
+        </motion.div>
+      </motion.div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <StaggeredFadeIn delay={0.1}>
-              {[
-                <Card key="total">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("stock.totalRecords")}</CardTitle>
-                    <Warehouse className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <motion.div
-                      className="text-2xl font-bold"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                    >
-                      {totalStockRecords}
-                    </motion.div>
-                  </CardContent>
-                </Card>,
-                <Card key="low">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("stock.lowStock")}</CardTitle>
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <motion.div
-                      className="text-2xl font-bold text-yellow-600"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                    >
-                      {lowStockItems}
-                    </motion.div>
-                    <p className="text-xs text-muted-foreground">{t("stock.quantityLessThan10")}</p>
-                  </CardContent>
-                </Card>,
-                <Card key="out">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{t("stock.outOfStock")}</CardTitle>
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <motion.div
-                      className="text-2xl font-bold text-red-600"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                    >
-                      {outOfStockItems}
-                    </motion.div>
-                    <p className="text-xs text-muted-foreground">{t("stock.quantityEquals0")}</p>
-                  </CardContent>
-                </Card>,
-              ]}
-            </StaggeredFadeIn>
-          </div>
-
-          {(lowStockItems > 0 || outOfStockItems > 0) && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8, duration: 0.3 }}
-            >
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {t("stock.alertDescription")
-                    .replace("{outOfStock}", outOfStockItems.toString())
-                    .replace("{lowStock}", lowStockItems.toString())}
-                </AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.4 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("stock.manage")}</CardTitle>
-                <CardDescription>{t("stock.description")}</CardDescription>
-                <div className="flex flex-wrap gap-4 pt-4">
-                  <Select
-                    onValueChange={(value) => handleFilterChange("manufacturer", value)}
-                    value={searchParams.get("manufacturer") || "all"}
-                  >
-                    <SelectTrigger className="w-full sm:w-[240px]">
-                      <SelectValue placeholder={t("stock.filter_by_manufacturer")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("stock.all_manufacturers")}</SelectItem>
-                      {manufacturers.map((m) => (
-                        <SelectItem key={m.id} value={m.id.toString()}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    onValueChange={(value) => handleFilterChange("location", value)}
-                    value={searchParams.get("location") || "all"}
-                  >
-                    <SelectTrigger className="w-full sm:w-[240px]">
-                      <SelectValue placeholder={t("stock.filter_by_location")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("stock.all_locations")}</SelectItem>
-                      {locations.map((l) => (
-                        <SelectItem key={l.id} value={l.id.toString()}>
-                          {l.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StaggeredFadeIn delay={0.1}>
+          {[
+            <Card key="total">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("stock.totalRecords")}</CardTitle>
+                <Warehouse className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className={isLoading ? "opacity-50 transition-opacity" : ""}>
-                <ProductStockDataTable data={stocks} onEdit={handleEditStock} onDelete={handleDeleteStock} />
+              <CardContent>
+                <motion.div
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                >
+                  {totalStockRecords}
+                </motion.div>
               </CardContent>
-            </Card>
-          </motion.div>
-        </>
+            </Card>,
+            <Card key="low">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("stock.lowStock")}</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              </CardHeader>
+              <CardContent>
+                <motion.div
+                  className="text-2xl font-bold text-yellow-600"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+                >
+                  {lowStockItems}
+                </motion.div>
+                <p className="text-xs text-muted-foreground">{t("stock.quantityLessThan10")}</p>
+              </CardContent>
+            </Card>,
+            <Card key="out">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("stock.outOfStock")}</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <motion.div
+                  className="text-2xl font-bold text-red-600"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                >
+                  {outOfStockItems}
+                </motion.div>
+                <p className="text-xs text-muted-foreground">{t("stock.quantityEquals0")}</p>
+              </CardContent>
+            </Card>,
+          ]}
+        </StaggeredFadeIn>
+      </div>
+
+      {(lowStockItems > 0 || outOfStockItems > 0) && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8, duration: 0.3 }}
+        >
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {t("stock.alertDescription")
+                .replace("{outOfStock}", outOfStockItems.toString())
+                .replace("{lowStock}", lowStockItems.toString())}
+            </AlertDescription>
+          </Alert>
+        </motion.div>
       )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.0, duration: 0.4 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("stock.manage")}</CardTitle>
+            <CardDescription>{t("stock.description")}</CardDescription>
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Select
+                onValueChange={(value) => handleFilterChange("manufacturer", value)}
+                value={searchParams.get("manufacturer") || "all"}
+              >
+                <SelectTrigger className="w-full sm:w-[240px]">
+                  <SelectValue placeholder={t("stock.filter_by_manufacturer")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("stock.all_manufacturers")}</SelectItem>
+                  {manufacturers.map((m) => (
+                    <SelectItem key={m.id} value={m.id.toString()}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                onValueChange={(value) => handleFilterChange("location", value)}
+                value={searchParams.get("location") || "all"}
+              >
+                <SelectTrigger className="w-full sm:w-[240px]">
+                  <SelectValue placeholder={t("stock.filter_by_location")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("stock.all_locations")}</SelectItem>
+                  {locations.map((l) => (
+                    <SelectItem key={l.id} value={l.id.toString()}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent className={isLoading ? "opacity-50 transition-opacity" : ""}>
+            <ProductStockDataTable data={stocks} onEdit={handleEditStock} onDelete={handleDeleteStock} />
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <ProductStockSheet
         isOpen={isSheetOpen}
@@ -343,4 +337,12 @@ export default function ProductStockPage() {
       />
     </div>
   )
+}
+
+export default function ProductStockPage() {
+    return (
+        <React.Suspense fallback={<PageHeaderSkeleton />}>
+            <ProductStockPageContent />
+        </React.Suspense>
+    )
 }
