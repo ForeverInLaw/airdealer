@@ -31,6 +31,7 @@ function ProductStockPageContent() {
   const [isInitialLoad, setIsInitialLoad] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingStock, setEditingStock] = React.useState<ProductStock | null>(null)
+  const [selectedManufacturerForNewStock, setSelectedManufacturerForNewStock] = React.useState<string | null>(null)
   const { toast } = useToast()
 
   const fetchData = React.useCallback(
@@ -39,7 +40,7 @@ function ProductStockPageContent() {
       try {
         await new Promise((resolve) => setTimeout(resolve, 800))
 
-        const { data: productsData, error: productsError } = await supabase.from("products").select(`id, name, product_localization(language_code, name)`)
+        const { data: productsData, error: productsError } = await supabase.from("products").select(`id, name, manufacturer_id, product_localization(language_code, name)`)
         if (productsError) throw productsError
 
         const { data: locationsData, error: locationsError } = await supabase.from("locations").select("*").order("name")
@@ -332,8 +333,11 @@ function ProductStockPageContent() {
         stock={editingStock}
         products={products}
         locations={locations}
+        manufacturers={manufacturers}
         onSave={handleSheetSave}
         supabaseClient={supabase}
+        selectedManufacturer={selectedManufacturerForNewStock}
+        setSelectedManufacturer={setSelectedManufacturerForNewStock}
       />
     </div>
   )

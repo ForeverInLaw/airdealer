@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { ProductStock, Product, Location } from "@/lib/types"
+import type { ProductStock, Product, Location, Manufacturer } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { useI18n } from "@/lib/i18n/context"
@@ -25,8 +25,11 @@ interface ProductStockSheetProps {
   stock: ProductStock | null
   products: Product[]
   locations: Location[]
+  manufacturers: Manufacturer[]
   onSave: () => void
   supabaseClient: SupabaseClient
+  selectedManufacturer: string | null
+  setSelectedManufacturer: (id: string | null) => void
 }
 
 export function ProductStockSheet({
@@ -35,17 +38,25 @@ export function ProductStockSheet({
   stock,
   products,
   locations,
+  manufacturers,
   onSave,
   supabaseClient,
+  selectedManufacturer,
+  setSelectedManufacturer,
 }: ProductStockSheetProps) {
   const { toast } = useToast()
   const [formData, setFormData] = React.useState<Partial<ProductStock>>({})
   const [isLoading, setIsLoading] = React.useState(false)
   const { t } = useI18n()
+  const [filteredProducts, setFilteredProducts] = React.useState<Product[]>([])
 
   React.useEffect(() => {
     if (stock) {
       setFormData({ ...stock })
+      const product = products.find((p) => p.id === stock.product_id)
+      if (product) {
+        setSelectedManufacturer(product.manufacturer_id?.toString() || null)
+      }
     } else {
       setFormData({
         product_id: undefined,
@@ -53,7 +64,17 @@ export function ProductStockSheet({
         quantity: 0,
       })
     }
-  }, [stock, isOpen])
+  }, [stock, isOpen, products, setSelectedManufacturer])
+
+  React.useEffect(() => {
+    if (selectedManufacturer) {
+      setFilteredProducts(products.filter((p) => p.manufacturer_id?.toString() === selectedManufacturer))
+    } else {
+      setFilteredProducts(products)
+    }
+    // Reset product selection when manufacturer changes
+    setFormData((prev) => ({ ...prev, product_id: undefined }))
+  }, [selectedManufacturer, products])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -62,6 +83,10 @@ export function ProductStockSheet({
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: Number.parseInt(value) })
+  }
+
+  const handleManufacturerChange = (value: string) => {
+    setSelectedManufacturer(value === "all" ? null : value)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,6 +157,28 @@ export function ProductStockSheet({
         </SheetHeader>
         <form onSubmit={handleSubmit} className="grid gap-6 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="manufacturer_id" className="text-right col-span-1">
+              {t("stock.manufacturer")}
+            </Label>
+            <Select
+              value={selectedManufacturer || "all"}
+              onValueChange={handleManufacturerChange}
+              disabled={!!stock}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder={t("stock.selectManufacturer")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("stock.all_manufacturers")}</SelectItem>
+                {manufacturers.map((m) => (
+                  <SelectItem key={m.id} value={m.id.toString()}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="product_id" className="text-right col-span-1">
               {t("stock.product")}
             </Label>
@@ -140,13 +187,13 @@ export function ProductStockSheet({
               value={formData.product_id?.toString()}
               onValueChange={(value) => handleSelectChange("product_id", value)}
               required
-              disabled={!!stock} // Disable when editing existing stock
+              disabled={!!stock || !selectedManufacturer}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder={t("stock.selectProduct")} />
               </SelectTrigger>
               <SelectContent>
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <SelectItem key={p.id} value={p.id.toString()}>
                     {p.name}
                   </SelectItem>

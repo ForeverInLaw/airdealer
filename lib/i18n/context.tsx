@@ -346,6 +346,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.all_manufacturers": "All Manufacturers",
     "stock.filter_by_location": "Filter by location",
     "stock.all_locations": "All Locations",
+    "stock.manufacturer": "Manufacturer",
+    "stock.selectManufacturer": "Select manufacturer",
 
     // Manufacturers
     "manufacturers.title": "Manufacturers",
@@ -778,6 +780,8 @@ const translations: Record<Language, Record<string, string>> = {
     "stock.all_manufacturers": "Все производители",
     "stock.filter_by_location": "Фильтр по локации",
     "stock.all_locations": "Все локации",
+    "stock.manufacturer": "Производитель",
+    "stock.selectManufacturer": "Выберите производителя",
 
     // Manufacturers
     "manufacturers.title": "Производители",
